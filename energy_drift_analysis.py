@@ -29,7 +29,7 @@ class Particle:
         self.vy = 0
         self.m = m
     def get_KE(self):
-        return 0.5*self.m*np.sqrt(self.vx**2+self.vy**2)
+        return 0.5*self.m*(self.vx**2+self.vy**2)
 
 # Particle list
 p_list = [Particle(-dist/2,0,1),Particle(dist/2,0,1)]
