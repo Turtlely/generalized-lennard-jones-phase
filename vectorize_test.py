@@ -12,179 +12,118 @@ Temperature: K
 '''
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation  
 import time
+import pandas as pd
+import constants
+import potentials
+import partical_init
 
 # Time Step
-dt = 0.002 #0.002 picosecond time step, 2 femtosecond time step
+dt = constants.dt
+
+# Total simulation timeframe (ps)
+t_total = constants.t_total
 
 # Window Size
-WINDOW_SIZE = 10000 # 10,000 x 10,000 picometer box, 10 by 10 nanometers
+WINDOW_SIZE = constants.WINDOW_SIZE 
+
+# Initial grid parameters, aim for more than σ separation between molecules
+Nw = constants.Nw
+Nh = constants.Nh
+
+# Number of particles
+N=Nw*Nh
 
 '''
 Modelling an argon-like substance, Values taken from wikipedia
 '''
 
-# Boltzmann Constant (1.38E-23 J/K) kgm^2/s^2/K
-kb = 8310 #AMU * pm^2 / ps^2 / K
-σ = 340 # pm
-ε = 120*kb # AMU * pm^2 / ps^2
+# Boltzmann Constant
+kb = constants.kb
+σ = constants.σ
+ε = constants.ε
 
-# Lennard Jones Parameters
-A = 4 * ε * σ**12
-B = 4 * ε * σ**6
-
-# Lennard Jones function
-def V(r,A=1,B=1):
-    return A/r**12 - B/r**6
-
-def F(r,A=1,B=1):
-    return 12*A*r**-13 - 6*B*r**-7
-
-# Return list of particles to compute forces with
-def pair_selector(XY,n):
-    return [XY[i] for i in range(len(XY)) if i != n]
-
-# Particle generation function
-# Return two vectors of N length containing X and Y position of each particle
-def createParticles(N):
-    X = np.empty(N)
-    Y = np.empty(N)
-    VX = np.empty(N)
-    VY = np.empty(N)
-    FX = np.empty(N)
-    FY = np.empty(N)
-    M = np.empty(N)
-
-    for n in range(N):
-        x = WINDOW_SIZE*np.random.random()-WINDOW_SIZE/2
-        y = WINDOW_SIZE*np.random.random()-WINDOW_SIZE/2
-        X[n] = x
-        Y[n] = y
-        VX[n] = 500*np.random.random()-250
-        VY[n] = 500*np.random.random()-250
-        M[n] = 39.948
-    return X,Y,VX,VY,FX,FY,M
-
-def createParticlesGrid(a,b,c,d):
-    X = np.empty(a*b)
-    Y = np.empty(a*b)
-    VX = np.empty(a*b)
-    VY = np.empty(a*b)
-    FX = np.empty(a*b)
-    FY = np.empty(a*b)
-    M = np.empty(a*b)
-    
-    n=0
-    for i in np.linspace(-c/2,c/2,a):
-        for j in np.linspace(-d/2,d/2,b):
-            X[n] = i
-            Y[n] = j
-            VX[n] = 700*np.random.random()-350
-            VY[n] = 700*np.random.random()-350
-            M[n] = 39.948
-            n+=1
-    return X,Y,VX,VY,FX,FY,M
+# Lennard Jones Parameter
+A = constants.A
+B = constants.B
 
 # Creating the vectors
-#X,Y,VX,VY,FX,FY,M = createParticles(N)
-X,Y,VX,VY,FX,FY,M = createParticlesGrid(7,7,2500,2500)
+X,Y,VX,VY,FX,FY,M = partical_init.createParticlesGrid(Nw,Nh,WINDOW_SIZE/2,WINDOW_SIZE/2)
 
-# Number of particles
-N=49
+X_new = np.empty_like(X)
+Y_new = np.empty_like(Y)
 
-# Animation
-fig = plt.figure()
-ax = plt.axes(xlim=(-WINDOW_SIZE/2,WINDOW_SIZE/2),ylim=(-WINDOW_SIZE/2,WINDOW_SIZE/2))   
-ax.set_aspect('equal', adjustable='box')
-ax.set_xlabel("Picometers")
-ax.set_ylabel("Picometers")
-plt.grid()
-scat = ax.scatter(X,Y)
-XY = np.c_[X,Y]
-XY_new = np.empty_like(XY)
+# Logging variables
+pos_log = np.empty(int(t_total/dt),dtype=np.ndarray)
 
 # Simulation Frame
-def animate(i):
+def time_step(i):
     # Start timer
     start_time = time.time()
-    global XY
-    global VX
-    global VY
-    global M
+    global X, Y, VX, VY
     
     KE = 0
-    U = 0
     T = 0
 
     for n in range(N):
-        xi,yi = XY[n]
+        xi = X[n]
+        yi = Y[n]
         vx = VX[n]
         vy = VY[n]
-        m = M[n]
+        m = 1 
 
         # Kinetic Energy Calculation
         KE += 0.5*m*(vx**2+vy**2)
-        T+= m*(vx**2+vy**2)/(kb*(3*N-3))
-
+        # Temperature calculation
+        T += m*(vx**2+vy**2)/(kb*(3*N-3))
         
         # Solve for the force using the current position
 
-        F_x = 0
-        F_y = 0
-
-        for xj,yj in pair_selector(XY,n):
-            # Distance between the particles
-            r = np.sqrt((xi-xj)**2+(yi-yj)**2)
-
-            # Energy bookkeeping calculation:
-            U += V(r,A,B)/2 # (divide by two to account for double counting)
-
-            # Compute force acting on p_i, due to p_j
-            F_ij = F(r,A,B)
-
-            # Components of force
-            F_ij_x = F_ij * (xi - xj)/r
-            F_ij_y = F_ij * (yi - yj)/r
-
-            F_x += F_ij_x
-            F_y += F_ij_y
+        r_array = np.sqrt(np.square(X-xi)+np.square(Y-yi))
+        U = np.sum(potentials.V(r_array,A,B))/2
+        F_ij_array = potentials.F(r_array,A,B)
+        F_x = np.sum(F_ij_array* np.divide((xi - X), r_array, out=np.zeros_like(X), where=r_array!=0))
+        F_y = np.sum(F_ij_array* np.divide((yi - Y), r_array, out=np.zeros_like(Y), where=r_array!=0))
         
         FX[n] = F_x
         FY[n] = F_y
-        
+
         # New position
         xi += vx*dt + 0.5*F_x/m*dt**2 
         yi += vy*dt + 0.5*F_y/m*dt**2
+        
+        # Periodic/ish boundary
+        '''
+        if xi < -WINDOW_SIZE/2:
+            xi += WINDOW_SIZE
+        if xi > WINDOW_SIZE/2:
+            xi -= WINDOW_SIZE
+        if yi < - WINDOW_SIZE/2:
+            yi += WINDOW_SIZE
+        if yi > WINDOW_SIZE/2:           
+            yi -= WINDOW_SIZE
+        '''
 
-        XY_new[n] = (xi,yi)
+        X_new[n] = xi
+        Y_new[n] = yi
 
-    XY = np.copy(XY_new)
+    X = np.copy(X_new)
+    Y = np.copy(Y_new)
 
     for n in range(N):
-        xi,yi = XY[n]
+        xi = X[n]
+        yi = Y[n]
         vx = VX[n]
         vy = VY[n]
-        m = M[n]
+        m = 1 
 
         # Solve for the new force using the updated position
 
-        F_x = 0
-        F_y = 0
-
-        for xj,yj in pair_selector(XY,n):
-            # Distance between the particles
-            r = np.sqrt((xi-xj)**2+(yi-yj)**2)
-            # Compute force acting on p_i, due to p_j
-            F_ij = F(r,A,B)
-
-            # Components of force
-            F_ij_x = F_ij * (xi - xj)/r
-            F_ij_y = F_ij * (yi - yj)/r
-
-            F_x += F_ij_x
-            F_y += F_ij_y
+        r_array = np.sqrt(np.square(X-xi)+np.square(Y-yi))
+        U = np.sum(potentials.V(r_array,A,B))/2
+        F_ij_array = potentials.F(r_array,A,B)
+        F_x = np.sum(F_ij_array* np.divide((xi - X), r_array, out=np.zeros_like(X), where=r_array!=0))
+        F_y = np.sum(F_ij_array* np.divide((yi - Y), r_array, out=np.zeros_like(Y), where=r_array!=0))
         
         # FX/Y[n] returns the force that the particle felt at the current position
         FX_old = FX[n]
@@ -192,36 +131,42 @@ def animate(i):
 
         vx += 0.5*(F_x+FX_old)/m * dt
         vy += 0.5*(F_y+FY_old)/m * dt
-
+        
+        # Hard boundary
+        
+        if xi < -WINDOW_SIZE/2 or xi > WINDOW_SIZE/2:
+            vx*=-1
+        if yi < - WINDOW_SIZE/2 or yi > WINDOW_SIZE/2:
+            vy*=-1
+        
         VX[n] = vx
         VY[n] = vy
     
-    # Plot particles
-    scat.set_offsets(XY)
+    # Log X and Y
+    XY = np.c_[X,Y]
+    pos_log[i] = XY
 
-    # FPS counter
-    print("FPS: ", 1/(time.time() - start_time))
+    # Log VX and VY of each particle
+    #VX
+    #VY
 
-    # Energy Drift Analysis
-    #print("Potential energy (eV): ", U*1e-7)
-    #print("Kinetic energy (eV): ", KE*1e-7)
-    print("Hamiltonian (eV): ", round((KE + U)*1e-7,2))
-    print("Temperature (K): ", round(T,2))
+    # Log hamiltonian, temperature, pressure
+    H = (KE + U)*1e-7
+    #T = T
+
+    # Log FPS
+    fps = 1/(time.time() - start_time)
+
+    print("FPS: ", fps)
+    print("Hamiltonian (eV): ", round(H,5))
     print("Elapsed Time (ps): ", round(dt*i,4))
-    print()
+    print("Frames Elapsed: ", i)
 
-ani = FuncAnimation(fig,animate,interval=1,cache_frame_data=False)
-plt.show()
+# Simulation loop
 
+for i in range(int(t_total/dt)):
+    time_step(i)
 
-
-
-'''
-Research:
-To minimize energy drift, you can either:
-1. lower the time step
-2. bring the particles closer to the equilibrium point
-3. increase the mass, which decreases the total acceleration
-
-It seems the simulation is stable when the maximum acceleration is below some threshold. Above this, the particle gains energy too fast
-'''
+np.save("position_data",pos_log)
+#print("Position Log")
+#print(pos_log[1][1])
