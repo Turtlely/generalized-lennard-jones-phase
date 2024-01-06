@@ -8,8 +8,8 @@ t_total = 10
 WINDOW_SIZE = 10000 # 10,000 x 10,000 picometer box, 10 by 10 nanometers
 
 # Initial grid parameters, aim for more than σ separation between molecules
-Nw = 4
-Nh = 4
+Nw = 10
+Nh = 10
 
 '''
 Modelling an argon-like substance, Values taken from wikipedia
@@ -23,3 +23,6 @@ kb = 8310 #AMU * pm^2 / ps^2 / K
 # Lennard Jones Parameter
 A = 4 * ε * σ**12
 B = 4 * ε * σ**6
+
+# Cutoff distance
+rc = 5000

@@ -26,9 +26,7 @@ def createParticlesGrid(a,b,c,d):
     Y = np.empty(a*b)
     VX = np.empty(a*b)
     VY = np.empty(a*b)
-    FX = np.empty(a*b)
-    FY = np.empty(a*b)
-    M = np.empty(a*b)
+    M = np.ones(a*b)
     
     n=0
     for i in np.linspace(-c/2,c/2,a):
@@ -37,8 +35,8 @@ def createParticlesGrid(a,b,c,d):
             Y[n] = j
             VX[n] = 400*np.random.random()-200
             VY[n] = 400*np.random.random()-200
-            M[n] = 1
+            #M[n] = 1
             n+=1
-    return X,Y,VX,VY,FX,FY,M
+    return X,Y,VX,VY,M
 
     
