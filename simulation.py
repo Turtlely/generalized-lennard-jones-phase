@@ -17,12 +17,13 @@ import os
 import datetime
 import scipy.spatial as spatial
 
-def time_step(i,X,Y,VX,VY,M,FX,FY,X_new,Y_new,N,temperature_log,energy_log,pos_log,vel_log):
+def time_step(i,X,Y,VX,VY,M,FX,FY,X_new,Y_new,N,temperature_log,energy_log,pos_log,vel_log,p_log):
     # Start timer
     start_time = time.time()
     KE = 0
     T = 0
     U = 0
+    P = 0
 
     # Construct KDTree for nearest neighbor search
     tree = spatial.cKDTree(np.c_[X,Y])
@@ -55,8 +56,9 @@ def time_step(i,X,Y,VX,VY,M,FX,FY,X_new,Y_new,N,temperature_log,energy_log,pos_l
         X_new[n] = xi
         Y_new[n] = yi
 
+        P += np.dot(F_ij_array,r_array)
         KE+=0.5*m*(vx**2+vy**2)
-        T+=m*(vx**2+vy**2)/(constants.kb*(3*N-3))
+        T+=m*(vx**2+vy**2)/(constants.kb*(3*N))
 
         
     X = np.copy(X_new)
@@ -108,6 +110,11 @@ def time_step(i,X,Y,VX,VY,M,FX,FY,X_new,Y_new,N,temperature_log,energy_log,pos_l
     print("Temperature (K): ", round(T,2))
     temperature_log[i] = T
 
+    # Log Pressure
+    P_real = P*constants.WINDOW_SIZE**-2/2 + N*constants.kb*T*constants.WINDOW_SIZE**-2
+    print("Pressure (N/m): ", P_real * 1.6605778811e-15)
+    p_log[i] = P_real
+
     # Elapsed time and frames
     print("Elapsed Time (ps): ", round(constants.dt*i,4))
     print("Elapsed Frames: ", i)
@@ -134,10 +141,11 @@ def start_simulation(X,Y,VX,VY,M):
     energy_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
     temperature_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
     vel_log = np.empty(int(constants.t_total/constants.dt),dtype=np.ndarray)
-    
+    p_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
+
     # Simulation loop
     for i in range(int(constants.t_total/constants.dt)):
-        X,Y,VX,VY,M = time_step(i,X,Y,VX,VY,M,FX,FY,X_new,Y_new,N,temperature_log,energy_log,pos_log,vel_log)
+        X,Y,VX,VY,M = time_step(i,X,Y,VX,VY,M,FX,FY,X_new,Y_new,N,temperature_log,energy_log,pos_log,vel_log,p_log)
 
     # Save data
     print("DONE WITH SIMULATION, SAVING")

@@ -26,3 +26,6 @@ B = 4 * ε * σ**6
 
 # Cutoff distance
 rc = 5000
+
+# Initial temperature (K)
+T_init = 300 

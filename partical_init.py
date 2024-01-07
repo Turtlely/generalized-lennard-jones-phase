@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import constants
 
 # Particle generation function
 def createParticles(N):
@@ -28,14 +29,32 @@ def createParticlesGrid(a,b,c,d):
     VY = np.empty(a*b)
     M = np.ones(a*b)
     
+    N = a*b
+
+    # Assign random velocities
+    VX = np.random.random(N)-0.5
+    VY = np.random.random(N)-0.5
+    
+    # Find center of mass velocity
+    vx_cm = np.average(VX)
+    vy_cm = np.average(VY)
+    # Adjust initial velocities to have zero momentum
+    VX -= vx_cm
+    VY -= vy_cm
+
+    # Current temperature
+    T_i = np.sum(M*(np.power(VX,2)+np.power(VY,2))/(constants.kb*(3*N)))
+
+    # Scale velocities
+    factor = (constants.T_init/T_i)**0.5
+    VX *= factor
+    VY *= factor
+
     n=0
     for i in np.linspace(-c/2,c/2,a):
         for j in np.linspace(-d/2,d/2,b):
             X[n] = i
             Y[n] = j
-            VX[n] = 400*np.random.random()-200
-            VY[n] = 400*np.random.random()-200
-            #M[n] = 1
             n+=1
     return X,Y,VX,VY,M
 
