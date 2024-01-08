@@ -4,8 +4,7 @@ import partical_init as pi
 import constants
 
 # Initialize
-X,Y,VX,VY,M = pi.createParticlesGrid(constants.Nw,constants.Nh,constants.WINDOW_SIZE/2,constants.WINDOW_SIZE/2)
-#sim = sim.simulation(X,Y,VX,VY,M)
+X,Y,Z,VX,VY,VZ,M = pi.createParticlesCube(constants.Ni,constants.Nj,constants.Nk,constants.WINDOW_SIZE/2,constants.WINDOW_SIZE/2,constants.WINDOW_SIZE/2)
 
 # Start Simulation
-sim.start_simulation(X,Y,VX,VY,M)
+sim.start_simulation(X,Y,Z,VX,VY,VZ,M)

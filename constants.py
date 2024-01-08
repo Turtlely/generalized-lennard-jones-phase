@@ -2,14 +2,18 @@
 dt = 0.002 #0.002 picosecond time step, 2 femtosecond time step
 
 # Total simulation timeframe (ps)
-t_total = 10
+t_total = 0.5
+
+# FPS for rendering
+FPS = 1000
 
 # Window Size
 WINDOW_SIZE = 10000 # 10,000 x 10,000 picometer box, 10 by 10 nanometers
 
 # Initial grid parameters, aim for more than σ separation between molecules
-Nw = 10
-Nh = 10
+Ni = 5
+Nj = 5
+Nk = 5
 
 '''
 Modelling an argon-like substance, Values taken from wikipedia
@@ -29,3 +33,7 @@ rc = 5000
 
 # Initial temperature (K)
 T_init = 300 
+
+# Coupling constant to a heat bath, cc = freq/dt
+# 1 collision every 100 time steps
+freq = 1/(100)

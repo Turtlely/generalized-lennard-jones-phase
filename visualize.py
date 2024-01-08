@@ -1,41 +1,62 @@
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation  
-import pandas as pd
+import vispy
+import vispy.scene
+from vispy.scene import visuals
+from vispy import app
+import sys
 import numpy as np
 import constants
+from vispy.scene.cameras import TurntableCamera
+import vispy.scene as scene
 
 # Window Size
 WINDOW_SIZE = constants.WINDOW_SIZE # 10,000 x 10,000 picometer box, 10 by 10 nanometers
 
 # Animation
-fig = plt.figure()
-ax = plt.axes(xlim=(-WINDOW_SIZE/2,WINDOW_SIZE/2),ylim=(-WINDOW_SIZE/2,WINDOW_SIZE/2))   
-ax.set_aspect('equal', adjustable='box')
-ax.set_xlabel("Picometers")
-ax.set_ylabel("Picometers")
-plt.grid()
+canvas = vispy.scene.SceneCanvas(keys='interactive', show=True)
+view = canvas.central_widget.add_view()
 
+# Camera control
+view.camera = TurntableCamera(up='z',elevation=45,azimuth=135,fov=60,distance=2*WINDOW_SIZE*np.sqrt(3))
+
+# Create scatterplot
+scatter = visuals.Markers()
+
+# Add scatterplot
+view.add(scatter)
+
+# Add axis
+xax = scene.Axis(pos=[[0, 0], [WINDOW_SIZE, 0]], tick_direction=(0, -1), axis_color='r', tick_color='r', text_color='r', font_size=16, parent=view.scene)
+yax = scene.Axis(pos=[[0, 0], [0, WINDOW_SIZE]], tick_direction=(-1, 0), axis_color='g', tick_color='g', text_color='g', font_size=16, parent=view.scene)
+zax = scene.Axis(pos=[[0, 0], [-WINDOW_SIZE, 0]], tick_direction=(0, -1), axis_color='b', tick_color='b', text_color='b', font_size=16, parent=view.scene)
+zax.transform = scene.transforms.MatrixTransform()  # its acutally an inverted xaxis
+zax.transform.rotate(90, (0, 1, 0))  # rotate cw around yaxis
+zax.transform.rotate(-45, (0, 0, 1))  # tick direction towards (-1,-1)
+
+print("Plot set up")
+
+# Import data file
 print("Loading File")
-XY = np.load("simulations/2024-01-06 15:17:47.275782/position_log.npy", allow_pickle=True)
-#XY2 = np.load("simulations/long simulation/position_data.npy", allow_pickle=True)
+XY = np.load("simulations/2024-01-08 01:06:18.775804/position_log.npy", allow_pickle=True)
 
-print("Done!")
+print("Done Loading File!")
+
 
 frames = int(constants.t_total/constants.dt)
+t = 0
+def update(ev):
+    global scatter
+    global t
+    t += 1
 
-scat = ax.scatter(*zip(*XY[0]))
+    if t > frames-1:
+        t=0
 
-def animate(i):
-    print(i)
-    # Plot particles
-    scat.set_offsets(XY[i])
+    scatter.set_data(XY[t], edge_color=None, face_color=(1, 1, 1, 0.5), size=15)
 
-print("Starting render")
-anim = FuncAnimation(fig, animate, 
-                     frames = frames, interval = 0.01) 
-print("Finished render!")
-plt.show()
-   
-#print("Saving")
-#anim.save('Output.mp4', writer = 'ffmpeg', fps = 500,dpi=300) 
-#print("Finished saving!")
+timer = app.Timer()
+timer.connect(update)
+timer.start(1/constants.FPS)
+if __name__ == '__main__':
+    canvas.show()
+    if sys.flags.interactive == 0:
+        app.run()
