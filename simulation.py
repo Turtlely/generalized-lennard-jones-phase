@@ -31,7 +31,7 @@ energy_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 temperature_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 p_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 
-def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M):
+def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     # Start timer
     start_time = time.time()
     KE = 0
@@ -114,12 +114,15 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M):
         # Probability of particle undergoing collision
         if np.random.random() < constants.freq:
             # Sample velocity from a boltzman distribution
-            pass
-
-        # Update velocity
-        vx += 0.5*(F_x+FX_old)/m * constants.dt
-        vy += 0.5*(F_y+FY_old)/m * constants.dt
-        vz += 0.5*(F_z+FZ_old)/m * constants.dt
+            stdev = np.sqrt(constants.kb*T_desired/m)
+            vx = np.random.normal(loc = 0, scale = stdev)
+            vy = np.random.normal(loc = 0, scale = stdev)
+            vz = np.random.normal(loc = 0, scale = stdev)
+        else:
+            # Update velocity
+            vx += 0.5*(F_x+FX_old)/m * constants.dt
+            vy += 0.5*(F_y+FY_old)/m * constants.dt
+            vz += 0.5*(F_z+FZ_old)/m * constants.dt
         
         # Hard boundary
         if xi < -constants.WINDOW_SIZE/2 or xi > constants.WINDOW_SIZE/2:
@@ -164,14 +167,18 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M):
 
     return X,Y,Z,VX,VY,VZ,M
 
-def start_simulation(X,Y,Z,VX,VY,VZ,M):
+def start_simulation(X,Y,Z,VX,VY,VZ,M,T_t):
     X_new = np.empty_like(X)
     Y_new = np.empty_like(Y)
     Z_new = np.empty_like(Z)
+    frames = int(constants.t_total/constants.dt)
+
+    # Temperature profile function
+    T_profile = T_t(np.arange(frames))
 
     # Simulation loop
-    for i in range(int(constants.t_total/constants.dt)):
-        X,Y,Z,VX,VY,VZ,M = time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M)
+    for i in range(frames):
+        X,Y,Z,VX,VY,VZ,M = time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_profile[i])
 
     # Save data
     print("DONE WITH SIMULATION, SAVING")

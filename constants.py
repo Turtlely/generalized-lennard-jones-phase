@@ -2,7 +2,7 @@
 dt = 0.002 #0.002 picosecond time step, 2 femtosecond time step
 
 # Total simulation timeframe (ps)
-t_total = 0.5
+t_total = 1
 
 # FPS for rendering
 FPS = 1000
@@ -29,11 +29,16 @@ A = 4 * ε * σ**12
 B = 4 * ε * σ**6
 
 # Cutoff distance
-rc = 5000
+rc = 2.5*σ
 
 # Initial temperature (K)
 T_init = 300 
 
+# Desired final temperature (K)
+def T_t(i):
+    time = i*dt
+    return time*0 + 200#1600*time*(1-time)
+
 # Coupling constant to a heat bath, cc = freq/dt
 # 1 collision every 100 time steps
-freq = 1/(100)
+freq = 1/100

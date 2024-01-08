@@ -7,6 +7,17 @@ import numpy as np
 import constants
 from vispy.scene.cameras import TurntableCamera
 import vispy.scene as scene
+import argparse
+import glob
+import os
+# Folder name argument
+parser = argparse.ArgumentParser("Visualization Application")
+parser.add_argument("Name", nargs='?',default=max(glob.glob('simulations/*'), key=os.path.getctime),help="The name of the folder containing the simulation files. This should be a time stamp of when the simulation was finished")
+args = parser.parse_args()
+timestamp = args.Name
+
+if timestamp[:12] == 'simulations/':
+    timestamp = timestamp[12:]
 
 # Window Size
 WINDOW_SIZE = constants.WINDOW_SIZE # 10,000 x 10,000 picometer box, 10 by 10 nanometers
@@ -36,7 +47,7 @@ print("Plot set up")
 
 # Import data file
 print("Loading File")
-XY = np.load("simulations/2024-01-08 01:06:18.775804/position_log.npy", allow_pickle=True)
+XY = np.load(f"simulations/{timestamp}/position_log.npy", allow_pickle=True)
 
 print("Done Loading File!")
 
