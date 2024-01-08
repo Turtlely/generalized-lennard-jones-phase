@@ -2,7 +2,7 @@
 dt = 0.002 #0.002 picosecond time step, 2 femtosecond time step
 
 # Total simulation timeframe (ps)
-t_total = 1
+t_total = 10
 
 # FPS for rendering
 FPS = 1000
@@ -34,11 +34,11 @@ rc = 2.5*σ
 # Initial temperature (K)
 T_init = 300 
 
-# Desired final temperature (K)
+# Temperature profile as a function of time
 def T_t(i):
     time = i*dt
-    return time*0 + 200#1600*time*(1-time)
+    return time*0 + 600#1600*time*(1-time)
 
 # Coupling constant to a heat bath, cc = freq/dt
-# 1 collision every 100 time steps
-freq = 1/100
+# 1 collision every 1000 time steps
+freq = 1/1000

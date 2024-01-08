@@ -12,12 +12,15 @@ import glob
 import os
 # Folder name argument
 parser = argparse.ArgumentParser("Visualization Application")
-parser.add_argument("Name", nargs='?',default=max(glob.glob('simulations/*'), key=os.path.getctime),help="The name of the folder containing the simulation files. This should be a time stamp of when the simulation was finished")
+parser.add_argument("Name", nargs='?',default=max(glob.glob('simulations/*'), key=os.path.getctime),help="The name of the folder containing the simulation files. This should be a time stamp of when the simulation was finished. If not provided, the most recent simulation will be selected")
 args = parser.parse_args()
 timestamp = args.Name
 
 if timestamp[:12] == 'simulations/':
     timestamp = timestamp[12:]
+if timestamp[:12] == "":
+    print("No simulation found")
+    quit()
 
 # Window Size
 WINDOW_SIZE = constants.WINDOW_SIZE # 10,000 x 10,000 picometer box, 10 by 10 nanometers
@@ -27,7 +30,7 @@ canvas = vispy.scene.SceneCanvas(keys='interactive', show=True)
 view = canvas.central_widget.add_view()
 
 # Camera control
-view.camera = TurntableCamera(up='z',elevation=45,azimuth=135,fov=60,distance=2*WINDOW_SIZE*np.sqrt(3))
+view.camera = TurntableCamera(up='z',elevation=45,azimuth=135,fov=60,distance=1.5*WINDOW_SIZE*np.sqrt(3))
 
 # Create scatterplot
 scatter = visuals.Markers()
@@ -36,9 +39,9 @@ scatter = visuals.Markers()
 view.add(scatter)
 
 # Add axis
-xax = scene.Axis(pos=[[0, 0], [WINDOW_SIZE, 0]], tick_direction=(0, -1), axis_color='r', tick_color='r', text_color='r', font_size=16, parent=view.scene)
-yax = scene.Axis(pos=[[0, 0], [0, WINDOW_SIZE]], tick_direction=(-1, 0), axis_color='g', tick_color='g', text_color='g', font_size=16, parent=view.scene)
-zax = scene.Axis(pos=[[0, 0], [-WINDOW_SIZE, 0]], tick_direction=(0, -1), axis_color='b', tick_color='b', text_color='b', font_size=16, parent=view.scene)
+xax = scene.Axis(pos=[[-WINDOW_SIZE/2, 0], [WINDOW_SIZE/2, 0]], tick_direction=(0, -1), axis_color='r', tick_color='r', text_color='r', font_size=16, parent=view.scene)
+yax = scene.Axis(pos=[[0, -WINDOW_SIZE/2], [0, WINDOW_SIZE/2]], tick_direction=(-1, 0), axis_color='g', tick_color='g', text_color='g', font_size=16, parent=view.scene)
+zax = scene.Axis(pos=[[WINDOW_SIZE/2, 0], [-WINDOW_SIZE/2, 0]], tick_direction=(0, -1), axis_color='b', tick_color='b', text_color='b', font_size=16, parent=view.scene)
 zax.transform = scene.transforms.MatrixTransform()  # its acutally an inverted xaxis
 zax.transform.rotate(90, (0, 1, 0))  # rotate cw around yaxis
 zax.transform.rotate(-45, (0, 0, 1))  # tick direction towards (-1,-1)
