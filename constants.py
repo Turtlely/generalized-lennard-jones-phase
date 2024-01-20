@@ -1,19 +1,21 @@
+import numpy as np
+
 # Time Step
 dt = 0.002 #0.002 picosecond time step, 2 femtosecond time step
 
 # Total simulation timeframe (ps)
-t_total = 5
+t_total = 1
 
 # FPS for rendering
 FPS = 1000
 
 # Window Size
-WINDOW_SIZE = 10000 # 10,000 x 10,000 picometer box, 10 by 10 nanometers
+WINDOW_SIZE = 2200 # 10,000 x 10,000 picometer box, 10 by 10 nanometers
 
 # Initial grid parameters, aim for more than σ separation between molecules
-Ni = 3
-Nj = 3
-Nk = 3
+Ni = 6
+Nj = 6
+Nk = 6
 
 '''
 Modelling an argon-like substance, Values taken from wikipedia
@@ -37,8 +39,10 @@ T_init = 300
 # Temperature profile as a function of time
 def T_t(i):
     time = i*dt
-    return time*0+T_init#time*10 + 20#1600*time*(1-time)
+    return T_init * np.exp(-1*time) + 0#1600*time*(1-time)
 
 # Coupling constant to a heat bath, cc = freq/dt
 # 1 collision every 1000 time steps
 freq = 1/100
+
+USE_THERMOSTAT = False #True

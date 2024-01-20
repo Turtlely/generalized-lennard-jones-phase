@@ -46,5 +46,3 @@ def createParticlesCube(a,b,c,i,j,k):
                 n+=1
     # Return
     return X,Y,Z,VX,VY,VZ,M
-
-    

@@ -32,13 +32,12 @@ p_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 
 # Periodic Boundaries
 x_ = np.linspace(-1, 1, 3)
-
-
 x,y,z = np.meshgrid(x_, x_, x_,indexing='ij')
 pbx = np.insert(np.delete(x.ravel(),13),0,0)*constants.WINDOW_SIZE
 pby = np.insert(np.delete(y.ravel(),13),0,0)*constants.WINDOW_SIZE
 pbz = np.insert(np.delete(z.ravel(),13),0,0)*constants.WINDOW_SIZE
 
+# Time step
 def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     # Start timer
     start_time = time.time()
@@ -48,12 +47,11 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     P = 0
 
     # Construct KDTree for nearest neighbor search
-    for k in range(0,27):
-        x, y, z = (pbx[k],pby[k],pbz[k])
-
-        X[(k)*N:(k+1)*N] = X[0:N]+x
-        Y[(k)*N:(k+1)*N] = Y[0:N]+y
-        Z[(k)*N:(k+1)*N] = Z[0:N]+z
+    for l in range(1,27):
+        x, y, z = (pbx[l],pby[l],pbz[l])
+        X[(l)*N:(l+1)*N] = X[0:N]+x
+        Y[(l)*N:(l+1)*N] = Y[0:N]+y
+        Z[(l)*N:(l+1)*N] = Z[0:N]+z
 
     points = np.c_[X,Y,Z]
     tree = spatial.cKDTree(points)
@@ -111,7 +109,8 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
         Y_new[n] = yi
         Z_new[n] = zi
 
-        P += np.dot(F_ij_array,r_array)
+        P += (xi*F_x + yi*F_y + zi*F_z)    
+        #P += np.dot([np.array([xi,yi,zi]),np.array([F_x,F_y,F_z])])
         KE+=0.5*m*(vx**2+vy**2+vz**2)
         T+=m*(vx**2+vy**2+vz**2)/(constants.kb*(3*N))
 
@@ -147,7 +146,7 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
         # Anderson Thermostat
 
         # Probability of particle undergoing collision
-        if False: ##np.random.random() < constants.freq:
+        if constants.USE_THERMOSTAT and np.random.random() < constants.freq:
             # Sample velocity from a boltzman distribution
             stdev = np.sqrt(constants.kb*T_desired/m)
             vx = np.random.normal(loc = 0, scale = stdev)
@@ -164,7 +163,7 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
         VZ[n] = vz
 
     # Log X and Y and Z
-    pos_log[i] = np.c_[X,Y,Z]
+    pos_log[i] = np.c_[X[0:N],Y[0:N],Z[0:N]]
 
     # Log VX and VY and VZ of each particle
     vel_log[i] = np.c_[VX,VY,VZ]
@@ -180,7 +179,7 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     temperature_log[i] = T
 
     # Log Pressure
-    P_real = P*((constants.WINDOW_SIZE)**-3)/3 + N*constants.kb*T*(constants.WINDOW_SIZE)**-3
+    P_real = P/(3*(constants.WINDOW_SIZE)**3) + N*constants.kb*T*(constants.WINDOW_SIZE)**-3
     print("Pressure (Pa): ", P_real * 1.66054e-15)
     p_log[i] = P_real
 
