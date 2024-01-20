@@ -11,7 +11,6 @@ import numpy as np
 import time
 import constants
 import potentials
-import partical_init
 import os
 import datetime
 import scipy.spatial as spatial
@@ -31,6 +30,15 @@ energy_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 temperature_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 p_log = np.empty(int(constants.t_total/constants.dt),dtype=np.float64)
 
+# Periodic Boundaries
+x_ = np.linspace(-1, 1, 3)
+
+
+x,y,z = np.meshgrid(x_, x_, x_,indexing='ij')
+pbx = np.insert(np.delete(x.ravel(),13),0,0)*constants.WINDOW_SIZE
+pby = np.insert(np.delete(y.ravel(),13),0,0)*constants.WINDOW_SIZE
+pbz = np.insert(np.delete(z.ravel(),13),0,0)*constants.WINDOW_SIZE
+
 def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     # Start timer
     start_time = time.time()
@@ -40,8 +48,16 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     P = 0
 
     # Construct KDTree for nearest neighbor search
-    tree = spatial.cKDTree(np.c_[X,Y,Z])
-    groups = tree.query_ball_point(np.c_[X,Y,Z], constants.rc,workers=-1)
+    for k in range(0,27):
+        x, y, z = (pbx[k],pby[k],pbz[k])
+
+        X[(k)*N:(k+1)*N] = X[0:N]+x
+        Y[(k)*N:(k+1)*N] = Y[0:N]+y
+        Z[(k)*N:(k+1)*N] = Z[0:N]+z
+
+    points = np.c_[X,Y,Z]
+    tree = spatial.cKDTree(points)
+    groups = tree.query_ball_point(points, constants.rc,workers=-1)
     
     for n in range(N):
         xi = X[n]
@@ -71,6 +87,25 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
         xi += vx*constants.dt + 0.5*F_x/m*constants.dt**2 
         yi += vy*constants.dt + 0.5*F_y/m*constants.dt**2
         zi += vz*constants.dt + 0.5*F_z/m*constants.dt**2
+
+        # Periodic boundary conditions
+        if xi < -constants.WINDOW_SIZE/2:
+            xi+=constants.WINDOW_SIZE
+        
+        if xi > constants.WINDOW_SIZE/2:
+            xi-=constants.WINDOW_SIZE
+
+        if yi < -constants.WINDOW_SIZE/2:
+            yi+=constants.WINDOW_SIZE
+        
+        if yi > constants.WINDOW_SIZE/2:
+            yi-=constants.WINDOW_SIZE
+
+        if zi < -constants.WINDOW_SIZE/2:
+            zi+=constants.WINDOW_SIZE
+        
+        if zi > constants.WINDOW_SIZE/2:
+            zi-=constants.WINDOW_SIZE
 
         X_new[n] = xi
         Y_new[n] = yi
@@ -112,7 +147,7 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
         # Anderson Thermostat
 
         # Probability of particle undergoing collision
-        if np.random.random() < constants.freq:
+        if False: ##np.random.random() < constants.freq:
             # Sample velocity from a boltzman distribution
             stdev = np.sqrt(constants.kb*T_desired/m)
             vx = np.random.normal(loc = 0, scale = stdev)
@@ -123,14 +158,6 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
             vx += 0.5*(F_x+FX_old)/m * constants.dt
             vy += 0.5*(F_y+FY_old)/m * constants.dt
             vz += 0.5*(F_z+FZ_old)/m * constants.dt
-        
-        # Hard boundary
-        if xi < -constants.WINDOW_SIZE/2 or xi > constants.WINDOW_SIZE/2:
-            vx*=-1
-        if yi < -constants.WINDOW_SIZE/2 or yi > constants.WINDOW_SIZE/2:
-            vy*=-1
-        if zi < -constants.WINDOW_SIZE/2 or zi > constants.WINDOW_SIZE/2:
-            vz*=-1
 
         VX[n] = vx
         VY[n] = vy
@@ -153,7 +180,7 @@ def time_step(i,X,Y,Z,X_new,Y_new,Z_new,VX,VY,VZ,M,T_desired):
     temperature_log[i] = T
 
     # Log Pressure
-    P_real = P*constants.WINDOW_SIZE**-3/3 + N*constants.kb*T*constants.WINDOW_SIZE**-3
+    P_real = P*((constants.WINDOW_SIZE)**-3)/3 + N*constants.kb*T*(constants.WINDOW_SIZE)**-3
     print("Pressure (Pa): ", P_real * 1.66054e-15)
     p_log[i] = P_real
 

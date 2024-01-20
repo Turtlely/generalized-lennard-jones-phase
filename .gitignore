@@ -153,3 +153,4 @@ cython_debug/
 *.npy
 *.mp4
 test/
+.DS_Store

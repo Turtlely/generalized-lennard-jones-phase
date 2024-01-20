@@ -2,15 +2,15 @@ import numpy as np
 import constants
 
 def createParticlesCube(a,b,c,i,j,k):
-    X = np.empty(a*b*c)
-    Y = np.empty(a*b*c)
-    Z = np.empty(a*b*c)
-    VX = np.empty(a*b*c)
-    VY = np.empty(a*b*c)
-    VZ = np.empty(a*b*c)
-    M = np.ones(a*b*c)
-    
-    N = a*b*c
+
+    N=a*b*c
+    X = np.empty(27*N)
+    Y = np.empty(27*N)
+    Z = np.empty(27*N)
+    VX = np.empty(N)
+    VY = np.empty(N)
+    VZ = np.empty(N)
+    M = np.ones(N)
 
     # Assign random velocities
     VX = np.random.random(N)-0.5

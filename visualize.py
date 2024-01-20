@@ -30,7 +30,7 @@ canvas = vispy.scene.SceneCanvas(keys='interactive', show=True)
 view = canvas.central_widget.add_view()
 
 # Camera control
-view.camera = TurntableCamera(up='z',elevation=45,azimuth=135,fov=60,distance=1.5*WINDOW_SIZE*np.sqrt(3))
+view.camera = TurntableCamera(up='z',elevation=30,azimuth=135,fov=60,distance=WINDOW_SIZE*np.sqrt(2))
 
 # Create scatterplot
 scatter = visuals.Markers()
@@ -65,7 +65,7 @@ def update(ev):
     if t > frames-1:
         t=0
 
-    scatter.set_data(XY[t], edge_color=None, face_color=(1, 1, 1, 0.5), size=15)
+    scatter.set_data(XY[t], edge_color=(0,0,0,1), face_color=(1, 1, 1, 1), size=60)
 
 timer = app.Timer()
 timer.connect(update)
